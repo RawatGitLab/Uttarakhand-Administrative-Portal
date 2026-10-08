@@ -69,7 +69,7 @@ export default function Login({ onLoginSuccess, theme = "light" }: LoginProps) {
         <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
           isLight ? "text-slate-800" : "text-white"
         }`}>
-          Chamoli Geoportal
+          Uttarakhand Geoportal
         </h1>
         <p className={`text-xs sm:text-sm font-medium leading-relaxed mt-2 max-w-xs ${
           isLight ? "text-slate-600" : "text-slate-300"
