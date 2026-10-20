@@ -1,6 +1,22 @@
 import React, { useState, useMemo } from "react";
-import { Layers, Globe, Sliders, CheckSquare, Square, Check, RotateCcw, Database, ChevronDown, ChevronRight, Minimize2, Maximize2, Ruler, Trash2, Undo, GraduationCap, BookOpen, Heart, Shield, Waves, Compass, Vote, Droplet, HeartHandshake, Home, Briefcase, Building, Building2 } from "lucide-react";
+import { Layers, Globe, Sliders, CheckSquare, Square, Check, RotateCcw, Database, ChevronDown, ChevronRight, Minimize2, Maximize2, Ruler, Trash2, Undo, GraduationCap, BookOpen, Heart, Shield, Waves, Compass, Vote, Droplet, HeartHandshake, Home, Briefcase, Building, Building2, MapPin } from "lucide-react";
 import { LayerConfig, BaseMap } from "../types";
+
+const DISTRICTS = [
+  "Almora",
+  "Bageshwar",
+  "Chamoli",
+  "Champawat",
+  "Dehradun",
+  "Haridwar",
+  "Nainital",
+  "Pauri",
+  "Pithoragarh",
+  "Rudraprayag",
+  "Tehri",
+  "UdhamSinghNagar",
+  "Uttrarkashi"
+];
 
 interface SidebarProps {
   layers: LayerConfig[];
@@ -84,6 +100,21 @@ export default function Sidebar({
   setMeasurePoints
 }: SidebarProps) {
   const [isLayersCollapsed, setIsLayersCollapsed] = useState<boolean>(false);
+  const [collapsedDistricts, setCollapsedDistricts] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    DISTRICTS.forEach((d) => {
+      init[d] = d !== "Almora" && d !== "Bageshwar" && d !== "UdhamSinghNagar";
+    });
+    return init;
+  });
+
+  const toggleDistrict = (district: string) => {
+    setCollapsedDistricts((prev) => ({
+      ...prev,
+      [district]: !prev[district]
+    }));
+  };
+
   const [isBaseMapCollapsed, setIsBaseMapCollapsed] = useState<boolean>(true);
   const [isMeasureCollapsed, setIsMeasureCollapsed] = useState<boolean>(true);
   const [isAdminCollapsed, setIsAdminCollapsed] = useState<boolean>(false);
@@ -294,6 +325,42 @@ export default function Sidebar({
     });
   }, [layers]);
 
+  const districtLayersMap = useMemo(() => {
+    const map: Record<string, LayerConfig[]> = {};
+    DISTRICTS.forEach((d) => {
+      const dLower = d.toLowerCase();
+      map[d] = layers.filter((layer) => {
+        const lName = layer.name.toLowerCase();
+        if (dLower === "udhamsinghnagar") {
+          return (
+            lName.includes("udhamsinghnagar") ||
+            lName.includes("udham singh nagar") ||
+            lName.includes("udham-singh-nagar") ||
+            lName.includes("usn") ||
+            lName.includes("u.s.n") ||
+            lName.includes("us nagar")
+          );
+        }
+        if (dLower === "uttrarkashi") {
+          return lName.includes("uttrarkashi") || lName.includes("uttarkashi");
+        }
+        return lName.includes(dLower);
+      });
+    });
+    return map;
+  }, [layers]);
+
+  const allDistrictLayerIds = useMemo(() => {
+    const ids = new Set<string>();
+    DISTRICTS.forEach((d) => {
+      const dLayers = districtLayersMap[d];
+      if (dLayers) {
+        dLayers.forEach((l) => ids.add(l.id));
+      }
+    });
+    return ids;
+  }, [districtLayersMap]);
+
   const otherLayers = useMemo(() => {
     const categorizedIds = new Set([
       ...administrativeLayers.map((l) => l.id),
@@ -305,6 +372,7 @@ export default function Sidebar({
       ...irrigationLayers.map((l) => l.id),
       ...minorityWelfareLayers.map((l) => l.id),
       ...villageLayers.map((l) => l.id),
+      ...Array.from(allDistrictLayerIds),
       ...employmentLayers.map((l) => l.id),
       ...townLayers.map((l) => l.id),
       ...touristLayers.map((l) => l.id),
@@ -322,6 +390,7 @@ export default function Sidebar({
     irrigationLayers,
     minorityWelfareLayers,
     villageLayers,
+    allDistrictLayerIds,
     employmentLayers,
     townLayers,
     touristLayers,
@@ -607,6 +676,63 @@ export default function Sidebar({
                   )}
                 </div>
               )}
+
+              {/* Thirteen Districts */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/30 dark:bg-slate-800/30 shadow-sm">
+                <div className="w-full flex items-center justify-between p-2.5 bg-slate-100/80 dark:bg-slate-800/80 font-sans border-b border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                    <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                    Thirteen Districts
+                  </span>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-2 space-y-2">
+                  {DISTRICTS.map((district) => {
+                    const isDistrictCollapsed = collapsedDistricts[district] ?? true;
+                    const districtLayers = districtLayersMap[district] || [];
+                    return (
+                      <div
+                        key={district}
+                        className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/30 dark:bg-slate-800/30 shadow-sm"
+                      >
+                        <button
+                          onClick={() => toggleDistrict(district)}
+                          className={`w-full flex items-center justify-between p-2.5 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors text-left font-sans focus:outline-none cursor-pointer ${
+                            !isDistrictCollapsed ? "border-b border-slate-200/60 dark:border-slate-700/60" : ""
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                            <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                            {district}
+                            {districtLayers.length > 0 && (
+                              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                ({districtLayers.length})
+                              </span>
+                            )}
+                          </span>
+                          {isDistrictCollapsed ? (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          )}
+                        </button>
+
+                        {!isDistrictCollapsed && (
+                          <div className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800/80">
+                            {districtLayers.length === 0 ? (
+                              <div className="p-3 text-center text-xs text-slate-400 dark:text-slate-500 font-medium">
+                                No layers loaded.
+                              </div>
+                            ) : (
+                              districtLayers.map((layer) => renderLayerItem(layer))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Collapsible Education Layer Section */}
               {educationLayers.length > 0 && (

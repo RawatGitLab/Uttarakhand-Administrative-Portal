@@ -152,10 +152,24 @@ export default function Login({ onLoginSuccess, theme = "light" }: LoginProps) {
             <span>{isSubmitting ? "Authenticating..." : "Explore Geoportal"}</span>
             {!isSubmitting && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
           </button>
+
+          {/* Quick Demo Fill */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("admin");
+                setPassword("admin");
+              }}
+              className="text-[11px] font-semibold text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+            >
+              Fill Demo Credentials (<span className="font-mono">admin / admin</span>)
+            </button>
+          </div>
         </form>
 
         {/* Divider */}
-        <div className={`w-full h-px my-6 ${isLight ? "bg-slate-300/60" : "bg-slate-700/60"}`} />
+        <div className={`w-full h-px my-5 ${isLight ? "bg-slate-300/60" : "bg-slate-700/60"}`} />
 
         {/* Footer */}
         <div className={`text-[10px] sm:text-[11px] font-bold tracking-[0.25em] uppercase text-center ${
