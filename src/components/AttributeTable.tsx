@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { GisFeature, LayerConfig } from "../types";
-import { Search, MapPin, Minimize2, Maximize2, AlertTriangle, BarChart3, ChevronDown, ChevronUp, Database, Wifi, Cpu, Activity, Table, RefreshCw } from "lucide-react";
+import { Search, MapPin, Minimize2, Maximize2, AlertTriangle, BarChart3, ChevronDown, ChevronUp, Database, Wifi, Cpu, Activity, Table, RefreshCw, Layers } from "lucide-react";
 
 interface AttributeTableProps {
   features: GisFeature[];
@@ -10,6 +10,8 @@ interface AttributeTableProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   onRefresh?: () => void;
+  activeLayerName?: string | null;
+  onSelectLayer?: (layerName: string) => void;
 }
 
 export default function AttributeTable({
@@ -19,40 +21,61 @@ export default function AttributeTable({
   onFeatureSelect,
   isCollapsed,
   setIsCollapsed,
-  onRefresh
+  onRefresh,
+  activeLayerName,
+  onSelectLayer
 }: AttributeTableProps) {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isFormCollapsed, setIsFormCollapsed] = useState<boolean>(true);
   const [isStatusCollapsed, setIsStatusCollapsed] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Get active layers that have features
+  // Get active layers that have features or are marked visible
   const activeLayersWithData = useMemo(() => {
     return layers.filter(
       (layer) =>
         layer.visible &&
-        features.some(
-          (f) =>
-            f.properties.layer === layer.name ||
-            f.properties.Layer === layer.name ||
-            f.properties.LAYER === layer.name
-        )
+        (layer.itemCount > 0 ||
+          features.some(
+            (f) =>
+              f.properties.layer === layer.name ||
+              f.properties.Layer === layer.name ||
+              f.properties.LAYER === layer.name
+          ))
     );
   }, [layers, features]);
 
-  // Determine current layer based on selected feature, or default to first active layer
+  // Determine current layer based on latest active layer, selected feature, or default
   const currentLayer = useMemo(() => {
-    if (activeLayersWithData.length === 0) return null;
-    
-    if (selectedFeature) {
-        const featLayerName = selectedFeature.properties.layer ||
-                              selectedFeature.properties.Layer ||
-                              selectedFeature.properties.LAYER;
-        const matched = activeLayersWithData.find((l) => l.name === featLayerName);
-        if (matched) return matched;
+    if (activeLayersWithData.length === 0) {
+      const anyVisible = layers.find((l) => l.visible);
+      return anyVisible || null;
     }
+    
+    // 1. Explicitly activated layer (the latest layer that was ticked)
+    if (activeLayerName) {
+      const matched = activeLayersWithData.find(
+        (l) => l.name.toLowerCase() === activeLayerName.toLowerCase()
+      );
+      if (matched) return matched;
+      const matchedAny = layers.find(
+        (l) => l.visible && l.name.toLowerCase() === activeLayerName.toLowerCase()
+      );
+      if (matchedAny) return matchedAny;
+    }
+
+    // 2. Selected feature's layer if active
+    if (selectedFeature) {
+      const featLayerName = selectedFeature.properties.layer ||
+                            selectedFeature.properties.Layer ||
+                            selectedFeature.properties.LAYER;
+      const matched = activeLayersWithData.find((l) => l.name === featLayerName);
+      if (matched) return matched;
+    }
+
+    // 3. Fallback to first active layer
     return activeLayersWithData[0];
-  }, [activeLayersWithData, selectedFeature]);
+  }, [activeLayersWithData, layers, activeLayerName, selectedFeature]);
 
   // Get all features for the current selected layer
   const layerFeatures = useMemo(() => {
@@ -224,6 +247,27 @@ export default function AttributeTable({
           </div>
         </div>
 
+        {/* Layer Selector Dropdown */}
+        {activeLayersWithData.length > 0 && (
+          <div className="flex items-center gap-2 pt-0.5">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-indigo-500" />
+              Active Layer:
+            </span>
+            <select
+              value={currentLayer?.name || ""}
+              onChange={(e) => onSelectLayer?.(e.target.value)}
+              className="flex-1 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-100 focus:outline-indigo-500 cursor-pointer truncate shadow-2xs"
+            >
+              {activeLayersWithData.map((l) => (
+                <option key={l.id} value={l.name}>
+                  {l.name} ({l.itemCount || 0} features)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {!isFormCollapsed && (
           <>
             {/* Search Bar */}
@@ -245,10 +289,16 @@ export default function AttributeTable({
 
       {/* Stats Counter Bar */}
       {currentLayer && (
-        <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex justify-between text-[11px] items-center text-slate-500 dark:text-slate-400 font-medium font-mono">
-          <span>Total: <strong className="text-slate-800 dark:text-slate-200">{layerFeatures.length}</strong></span>
-          <span>Filtered: <strong className="text-slate-800 dark:text-slate-200">{filteredFeatures.length}</strong></span>
-          <span>Selected: <strong className="text-indigo-600 dark:text-indigo-400">{selectedFeature && selectedFeature.properties.layer === currentLayer.name ? "1" : "0"}</strong></span>
+        <div className="px-4 py-2 bg-slate-50/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex justify-between text-[11px] items-center text-slate-500 dark:text-slate-400 font-medium font-mono">
+          <div className="flex items-center gap-1.5 truncate max-w-[180px]" title={currentLayer.name}>
+            <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: currentLayer.color }} />
+            <strong className="text-slate-800 dark:text-slate-200 truncate">{currentLayer.name}</strong>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span>Total: <strong className="text-slate-800 dark:text-slate-200">{layerFeatures.length}</strong></span>
+            <span>Filtered: <strong className="text-slate-800 dark:text-slate-200">{filteredFeatures.length}</strong></span>
+            <span>Selected: <strong className="text-indigo-600 dark:text-indigo-400">{selectedFeature && selectedFeature.properties.layer === currentLayer.name ? "1" : "0"}</strong></span>
+          </div>
         </div>
       )}
 

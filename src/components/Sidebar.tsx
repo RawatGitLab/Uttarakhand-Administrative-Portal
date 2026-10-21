@@ -38,6 +38,11 @@ interface SidebarProps {
   setMeasureMode: (mode: "none" | "distance" | "area") => void;
   measurePoints: { lat: number; lng: number }[];
   setMeasurePoints: React.Dispatch<React.SetStateAction<{ lat: number; lng: number }[]>>;
+
+  // Active table layer
+  activeTableLayerName?: string | null;
+  onSelectLayer?: (layerName: string) => void;
+  setIsTableCollapsed?: (collapsed: boolean) => void;
 }
 
 const ORIGINAL_LAYERS = new Set([
@@ -97,7 +102,10 @@ export default function Sidebar({
   measureMode,
   setMeasureMode,
   measurePoints,
-  setMeasurePoints
+  setMeasurePoints,
+  activeTableLayerName,
+  onSelectLayer,
+  setIsTableCollapsed
 }: SidebarProps) {
   const [isLayersCollapsed, setIsLayersCollapsed] = useState<boolean>(false);
   const [collapsedDistricts, setCollapsedDistricts] = useState<Record<string, boolean>>(() => {
@@ -418,7 +426,18 @@ export default function Sidebar({
           </button>
 
           {/* Dynamic Geometry Indicator & Name */}
-          <div className="flex items-center space-x-1.5 min-w-0">
+          <div
+            onClick={() => {
+              if (!layer.visible) {
+                toggleLayer(layer.id);
+              } else {
+                onSelectLayer?.(layer.name);
+                setIsTableCollapsed?.(false);
+              }
+            }}
+            className="flex items-center space-x-1.5 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+            title={layer.visible ? `Click to show ${layer.name} in Attribute Table` : `Click to activate ${layer.name}`}
+          >
             {/* Legend Badge representation */}
             {layer.type === "point" && (
               <span 
@@ -448,6 +467,12 @@ export default function Sidebar({
             <span className={`text-xs font-semibold ${layer.visible ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'} truncate`} title={layer.name}>
               {layer.name}
             </span>
+
+            {layer.visible && activeTableLayerName === layer.name && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+                Active
+              </span>
+            )}
           </div>
         </div>
 
@@ -677,6 +702,38 @@ export default function Sidebar({
                 </div>
               )}
 
+              {/* Collapsible River Layer Section */}
+              {riverLayers.length > 0 && (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/30 dark:bg-slate-800/30 shadow-sm">
+                  <button
+                    onClick={() => setIsRiverCollapsed(!isRiverCollapsed)}
+                    className="w-full flex items-center justify-between p-2.5 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors text-left font-sans focus:outline-none border-b border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
+                  >
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Waves className="w-3.5 h-3.5 text-cyan-500" />
+                      River Layer ({riverLayers.length})
+                    </span>
+                    {isRiverCollapsed ? (
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    )}
+                  </button>
+                  
+                  {!isRiverCollapsed && (
+                    <div className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800/80 max-h-96 overflow-y-auto">
+                      {riverLayers.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400 dark:text-slate-500 font-medium">
+                          No river layers loaded.
+                        </div>
+                      ) : (
+                        riverLayers.map((layer) => renderLayerItem(layer))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Thirteen Districts */}
               <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/30 dark:bg-slate-800/30 shadow-sm">
                 <div className="w-full flex items-center justify-between p-2.5 bg-slate-100/80 dark:bg-slate-800/80 font-sans border-b border-slate-200/60 dark:border-slate-700/60">
@@ -824,38 +881,6 @@ export default function Sidebar({
                         </div>
                       ) : (
                         policeLayers.map((layer) => renderLayerItem(layer))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Collapsible River Layer Section */}
-              {riverLayers.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/30 dark:bg-slate-800/30 shadow-sm">
-                  <button
-                    onClick={() => setIsRiverCollapsed(!isRiverCollapsed)}
-                    className="w-full flex items-center justify-between p-2.5 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors text-left font-sans focus:outline-none border-b border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
-                  >
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Waves className="w-3.5 h-3.5 text-cyan-500" />
-                      River Layer ({riverLayers.length})
-                    </span>
-                    {isRiverCollapsed ? (
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    )}
-                  </button>
-                  
-                  {!isRiverCollapsed && (
-                    <div className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800/80 max-h-96 overflow-y-auto">
-                      {riverLayers.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-400 dark:text-slate-500 font-medium">
-                          No river layers loaded.
-                        </div>
-                      ) : (
-                        riverLayers.map((layer) => renderLayerItem(layer))
                       )}
                     </div>
                   )}

@@ -58,6 +58,8 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [zoomToLayerName, setZoomToLayerName] = useState<string | null>(null);
   const [resetExtentTrigger, setResetExtentTrigger] = useState<number>(0);
+  const [activeTableLayerName, setActiveTableLayerName] = useState<string | null>(null);
+  const [tickedLayerHistory, setTickedLayerHistory] = useState<string[]>([]);
 
   // Dynamic Measurement state (Distance & Area)
   const [measureMode, setMeasureMode] = useState<"none" | "distance" | "area">("none");
@@ -304,27 +306,83 @@ export default function App() {
     });
 
     setLayers(configuration);
+
+    const initialActive = configuration.find((l) => l.visible);
+    if (initialActive) {
+      setActiveTableLayerName(initialActive.name);
+      setTickedLayerHistory([initialActive.name]);
+    }
   };
 
   // Handle sidebar interactivity toggles
   const toggleLayer = (id: string) => {
     setLayers((prev) => {
       const layerToToggle = prev.find((l) => l.id === id);
+      if (!layerToToggle) return prev;
 
-      // If the layer is going to be hidden and has the selected feature, clear the selection
-      if (layerToToggle && layerToToggle.visible && selectedFeature) {
-        const featLayerName =
-          selectedFeature.properties.layer ||
-          selectedFeature.properties.Layer ||
-          selectedFeature.properties.LAYER;
+      const isNowTicked = !layerToToggle.visible;
 
-        if (featLayerName === layerToToggle.name) {
-          setSelectedFeature(null);
+      if (isNowTicked) {
+        // Activate the latest layer which is ticked and show its data in the Attribute table
+        setActiveTableLayerName(layerToToggle.name);
+        setTickedLayerHistory((history) => [
+          layerToToggle.name,
+          ...history.filter((n) => n !== layerToToggle.name),
+        ]);
+        // Open the attribute table to show the data immediately
+        setIsTableCollapsed(false);
+      } else {
+        // Layer was unticked
+        setTickedLayerHistory((history) => {
+          const updated = history.filter((n) => n !== layerToToggle.name);
+          setActiveTableLayerName((currentActive) => {
+            if (currentActive === layerToToggle.name) {
+              const nextActive = updated.find((n) =>
+                prev.some((l) => l.name === n && l.visible && l.id !== id)
+              );
+              if (nextActive) return nextActive;
+              const remaining = prev.find((l) => l.visible && l.id !== id);
+              return remaining ? remaining.name : null;
+            }
+            return currentActive;
+          });
+          return updated;
+        });
+
+        // If the layer is going to be hidden and has the selected feature, clear the selection
+        if (selectedFeature) {
+          const featLayerName =
+            selectedFeature.properties.layer ||
+            selectedFeature.properties.Layer ||
+            selectedFeature.properties.LAYER;
+
+          if (featLayerName === layerToToggle.name) {
+            setSelectedFeature(null);
+          }
         }
       }
 
-      return prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l));
+      return prev.map((l) => (l.id === id ? { ...l, visible: isNowTicked } : l));
     });
+  };
+
+  const handleSelectTableLayer = (layerName: string) => {
+    setActiveTableLayerName(layerName);
+    setTickedLayerHistory((prev) => [layerName, ...prev.filter((n) => n !== layerName)]);
+  };
+
+  const handleFeatureSelect = (feature: GisFeature | null) => {
+    setSelectedFeature(feature);
+    if (feature) {
+      const featLayerName =
+        feature.properties.layer ||
+        feature.properties.Layer ||
+        feature.properties.LAYER;
+      if (featLayerName) {
+        setActiveTableLayerName(featLayerName);
+        setTickedLayerHistory((prev) => [featLayerName, ...prev.filter((n) => n !== featLayerName)]);
+      }
+    }
   };
 
   const updateLayerOpacity = (id: string, opacity: number) => {
@@ -356,11 +414,26 @@ export default function App() {
     setMeasurePoints([]);
     // Reset layers to default state (only State boundary visible) and trigger map extent zoom
     setLayers((prev) => prev.map((l) => ({ ...l, visible: l.name.toLowerCase().includes("state") })));
+    const stateLayer = layers.find((l) => l.name.toLowerCase().includes("state"));
+    if (stateLayer) {
+      setActiveTableLayerName(stateLayer.name);
+      setTickedLayerHistory([stateLayer.name]);
+    }
     setResetExtentTrigger((prev) => prev + 1);
   };
 
   const toggleAllLayers = (visible: boolean) => {
     setLayers((prev) => prev.map((l) => ({ ...l, visible })));
+    if (!visible) {
+      setActiveTableLayerName(null);
+      setTickedLayerHistory([]);
+    } else {
+      if (layers.length > 0 && !activeTableLayerName) {
+        setActiveTableLayerName(layers[0].name);
+        setTickedLayerHistory([layers[0].name]);
+      }
+      setIsTableCollapsed(false);
+    }
   };
 
   return (
@@ -492,6 +565,9 @@ export default function App() {
               setMeasureMode={setMeasureMode}
               measurePoints={measurePoints}
               setMeasurePoints={setMeasurePoints}
+              activeTableLayerName={activeTableLayerName}
+              onSelectLayer={handleSelectTableLayer}
+              setIsTableCollapsed={setIsTableCollapsed}
             />
 
             {/* Center Map Workboard */}
@@ -501,7 +577,7 @@ export default function App() {
               activeBaseMap={activeBaseMap}
               baseMaps={baseMaps}
               selectedFeature={selectedFeature}
-              onFeatureSelect={setSelectedFeature}
+              onFeatureSelect={handleFeatureSelect}
               hoveredFeature={hoveredFeature}
               setHoveredFeature={setHoveredFeature}
               isTableCollapsed={isTableCollapsed}
@@ -521,10 +597,12 @@ export default function App() {
               features={features}
               layers={layers}
               selectedFeature={selectedFeature}
-              onFeatureSelect={setSelectedFeature}
+              onFeatureSelect={handleFeatureSelect}
               isCollapsed={isTableCollapsed}
               setIsCollapsed={setIsTableCollapsed}
               onRefresh={() => fetchFeatures(true)}
+              activeLayerName={activeTableLayerName}
+              onSelectLayer={handleSelectTableLayer}
             />
           </>
         )}
