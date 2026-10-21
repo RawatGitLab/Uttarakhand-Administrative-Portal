@@ -241,7 +241,7 @@ export default function MapComponent({
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Default to District Extent (Chamoli/Uttarakhand: [30.085, 79.306], zoom: 8, or saved custom extent)
+    // Default to District Extent (Uttarakhand: [30.085, 79.306], zoom: 8, or saved custom extent)
     let initialCenter: [number, number] = [30.085, 79.306];
     let initialZoom = 8;
     try {
@@ -856,7 +856,7 @@ export default function MapComponent({
       if (isBoundsValid(b)) return b;
     }
 
-    // 4. Default fallback: Uttarakhand / Chamoli regional extent
+    // 4. Default fallback: Uttarakhand regional extent
     return L.latLngBounds([28.70317, 77.57446], [31.46705, 81.03853]);
   };
 
@@ -1094,7 +1094,7 @@ export default function MapComponent({
                     <span className="truncate text-slate-800 font-semibold">{name}</span>
                   </span>
                   <span className="text-[9px] uppercase tracking-wider bg-slate-100 text-slate-400 font-bold px-1.5 py-0.5 rounded font-mono shrink-0">
-                    {layerName.replace("USN-", "").replace("Almora-", "").replace("Chamoli-", "").replace("-Boundary", "")}
+                    {layerName.replace("USN-", "").replace("Almora-", "").replace("Uttarakhand-", "").replace("-Boundary", "")}
                   </span>
                 </button>
               );

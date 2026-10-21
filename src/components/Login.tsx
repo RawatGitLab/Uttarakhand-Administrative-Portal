@@ -175,7 +175,7 @@ export default function Login({ onLoginSuccess, theme = "light" }: LoginProps) {
         <div className={`text-[10px] sm:text-[11px] font-bold tracking-[0.25em] uppercase text-center ${
           isLight ? "text-slate-400/90" : "text-slate-500"
         }`}>
-          CHAMOLI &bull; GEOPORTAL
+          Uttarakhand &bull; GEOPORTAL
         </div>
       </div>
     </div>

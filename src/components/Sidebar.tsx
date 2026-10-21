@@ -1378,7 +1378,7 @@ export default function Sidebar({
             <span className="font-mono text-slate-700 dark:text-slate-200 font-bold">05</span>
           </div>
           <div className="flex justify-between">
-            <span>District (Chamoli):</span>
+            <span>(Uttarakahnd):</span>
             <span className="font-mono text-slate-700 dark:text-slate-200 font-bold">057</span>
           </div>
         </div>

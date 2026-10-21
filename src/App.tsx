@@ -417,7 +417,7 @@ export default function App() {
                 setIsAuthenticated(false);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition duration-150 text-xs font-semibold cursor-pointer border bg-red-600 hover:bg-red-700 text-white border-red-500 shadow-xs"
-              title="Sign out of Chamoli Geoportal"
+              title="Sign out of Uttarakhand Geoportal"
             >
               <LogOut className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">Logout</span>
@@ -440,7 +440,7 @@ export default function App() {
               </div>
               <h3 className="text-sm font-bold text-slate-100">Synchronizing Spatial Shapefiles Server</h3>
               <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                Connecting securely to database. Downloading geographical boundaries, river streams, and villages of <span className="text-indigo-400 font-semibold">Chamoli</span>...
+                Connecting securely to database. Downloading geographical boundaries, river streams, and villages of <span className="text-indigo-400 font-semibold">Uttarakhand</span>...
               </p>
               
               {/* Spinning status indicator */}

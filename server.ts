@@ -324,7 +324,7 @@ async function fetchAndProcessFeatures(force = false) {
         console.warn("[AI Studio] Serving previously cached features following database error.");
         return cachedFeaturesResponse;
       }
-      console.warn("[AI Studio] Database offline or unreachable — generating fallback Chamoli/Uttarakhand GIS dataset.");
+      console.warn("[AI Studio] Database offline or unreachable — generating fallback Uttarakhand GIS dataset.");
       const fallbackPayload = JSON.stringify({
         success: true,
         count: fallbackGisFeatures.length,
